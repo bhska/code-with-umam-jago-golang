@@ -88,8 +88,8 @@ func main() {
 	db := config.ConnectDB()
 	defer db.Close()
 
-	// Run migrations
-	config.Migrate()
+	// Run migrations and seeders
+	config.SetupDatabase()
 
 	// ===== LAYERED ARCHITECTURE SETUP =====
 	
