@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"database/sql"
 	"errors"
 	"kasir-api/entity"
 )
@@ -16,62 +17,104 @@ type ProductRepositoryInterface interface {
 
 // ProductRepository - struct untuk product repository
 type ProductRepository struct {
-	products []entity.Product
+	db *sql.DB
 }
 
 // NewProductRepository - constructor untuk ProductRepository
-func NewProductRepository() *ProductRepository {
-	// Data awal
-	return &ProductRepository{
-		products: []entity.Product{
-			{ID: 1, Nama: "Produk A", Harga: 10000, CategoryID: 1},
-			{ID: 2, Nama: "Produk B", Harga: 20000, CategoryID: 2},
-			{ID: 3, Nama: "Produk C", Harga: 30000, CategoryID: 1},
-		},
-	}
+func NewProductRepository(db *sql.DB) *ProductRepository {
+	return &ProductRepository{db: db}
 }
 
 // GetAll - ambil semua produk
 func (r *ProductRepository) GetAll() ([]entity.Product, error) {
-	return r.products, nil
+	rows, err := r.db.Query("SELECT id, nama, harga, category_id FROM products")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var products []entity.Product
+	for rows.Next() {
+		var p entity.Product
+		err := rows.Scan(&p.ID, &p.Nama, &p.Harga, &p.CategoryID)
+		if err != nil {
+			return nil, err
+		}
+		products = append(products, p)
+	}
+
+	return products, nil
 }
 
 // GetByID - ambil produk berdasarkan ID
 func (r *ProductRepository) GetByID(id int) (entity.Product, error) {
-	for _, p := range r.products {
-		if p.ID == id {
-			return p, nil
-		}
+	var p entity.Product
+	err := r.db.QueryRow(
+		"SELECT id, nama, harga, category_id FROM products WHERE id = $1", id,
+	).Scan(&p.ID, &p.Nama, &p.Harga, &p.CategoryID)
+	
+	if err == sql.ErrNoRows {
+		return entity.Product{}, errors.New("product not found")
 	}
-	return entity.Product{}, errors.New("product not found")
+	if err != nil {
+		return entity.Product{}, err
+	}
+	
+	return p, nil
 }
 
 // Create - tambah produk baru
 func (r *ProductRepository) Create(product entity.Product) (entity.Product, error) {
-	product.ID = len(r.products) + 1
-	r.products = append(r.products, product)
+	var id int
+	err := r.db.QueryRow(
+		"INSERT INTO products (nama, harga, category_id) VALUES ($1, $2, $3) RETURNING id",
+		product.Nama, product.Harga, product.CategoryID,
+	).Scan(&id)
+	
+	if err != nil {
+		return entity.Product{}, err
+	}
+	
+	product.ID = id
 	return product, nil
 }
 
 // Update - update produk
 func (r *ProductRepository) Update(id int, product entity.Product) (entity.Product, error) {
-	for i := range r.products {
-		if r.products[i].ID == id {
-			product.ID = id
-			r.products[i] = product
-			return product, nil
-		}
+	result, err := r.db.Exec(
+		"UPDATE products SET nama = $1, harga = $2, category_id = $3 WHERE id = $4",
+		product.Nama, product.Harga, product.CategoryID, id,
+	)
+	if err != nil {
+		return entity.Product{}, err
 	}
-	return entity.Product{}, errors.New("product not found")
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return entity.Product{}, err
+	}
+	if rowsAffected == 0 {
+		return entity.Product{}, errors.New("product not found")
+	}
+
+	product.ID = id
+	return product, nil
 }
 
 // Delete - hapus produk
 func (r *ProductRepository) Delete(id int) error {
-	for i, p := range r.products {
-		if p.ID == id {
-			r.products = append(r.products[:i], r.products[i+1:]...)
-			return nil
-		}
+	result, err := r.db.Exec("DELETE FROM products WHERE id = $1", id)
+	if err != nil {
+		return err
 	}
-	return errors.New("product not found")
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return errors.New("product not found")
+	}
+
+	return nil
 }

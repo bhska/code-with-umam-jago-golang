@@ -6,7 +6,11 @@ import (
 	"kasir-api/repository"
 	"kasir-api/service"
 	"net/http"
+	"os"
 
+	"kasir-api/config"
+
+	"github.com/joho/godotenv"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -59,6 +63,9 @@ const indexHTML = `<!DOCTYPE html>
             border-radius: 20px;
             font-size: 0.85em;
             margin: 5px;
+        }
+        .badge.db {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
         }
         .section {
             margin: 25px 0;
@@ -154,6 +161,16 @@ const indexHTML = `<!DOCTYPE html>
         .challenge h3 {
             margin-bottom: 10px;
         }
+        .db-info {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        .db-info h3 {
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -163,7 +180,13 @@ const indexHTML = `<!DOCTYPE html>
             <span class="badge">Week 2</span>
             <span class="badge">Layered Architecture</span>
             <span class="badge">JOIN Challenge</span>
+            <span class="badge db">PostgreSQL</span>
         </p>
+
+        <div class="db-info">
+            <h3>🐘 Database: PostgreSQL</h3>
+            <p>Menggunakan PostgreSQL database dengan .env configuration</p>
+        </div>
 
         <div class="section">
             <h2>📚 Layered Architecture</h2>
@@ -178,7 +201,7 @@ const indexHTML = `<!DOCTYPE html>
                 </div>
                 <div class="layer">
                     <div class="layer-name">Repository</div>
-                    <small>Data Access</small>
+                    <small>Data Access (PostgreSQL)</small>
                 </div>
                 <div class="layer">
                     <div class="layer-name">Entity</div>
@@ -254,11 +277,24 @@ const indexHTML = `<!DOCTYPE html>
 </html>`
 
 func main() {
+	// Load .env file
+	err := godotenv.Load()
+	if err != nil {
+		println("⚠️  Warning: .env file not found, using default values")
+	}
+
+	// Connect to PostgreSQL Database
+	db := config.ConnectDB()
+	defer db.Close()
+
+	// Run migrations
+	config.Migrate()
+
 	// ===== LAYERED ARCHITECTURE SETUP =====
 	
-	// Repository Layer (Data Access)
-	categoryRepo := repository.NewCategoryRepository()
-	productRepo := repository.NewProductRepository()
+	// Repository Layer (Data Access with PostgreSQL)
+	categoryRepo := repository.NewCategoryRepository(db)
+	productRepo := repository.NewProductRepository(db)
 	
 	// Service Layer (Business Logic)
 	categoryService := service.NewCategoryService(categoryRepo)
@@ -330,27 +366,34 @@ func main() {
 	// Health check
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"status":"OK","message":"API Running with Layered Architecture"}`))
+		w.Write([]byte(`{"status":"OK","message":"API Running with PostgreSQL"}`))
 	})
+	
+	port := os.Getenv("SERVER_PORT")
+	if port == "" {
+		port = "8080"
+	}
 	
 	// Server info
 	println("╔════════════════════════════════════════════════════════════╗")
 	println("║                    🚀 Kasir API Server                     ║")
 	println("╠════════════════════════════════════════════════════════════╣")
-	println("║  📍 Endpoint Utama:  http://localhost:8080/                ║")
-	println("║  📖 Swagger UI:      http://localhost:8080/swagger/        ║")
-	println("║  💓 Health Check:    http://localhost:8080/health          ║")
+	println("║  📍 Endpoint Utama:  http://localhost:" + port + "/                ║")
+	println("║  📖 Swagger UI:      http://localhost:" + port + "/swagger/        ║")
+	println("║  💓 Health Check:    http://localhost:" + port + "/health          ║")
+	println("╠════════════════════════════════════════════════════════════╣")
+	println("║  🐘 Database: PostgreSQL                                   ║")
 	println("╠════════════════════════════════════════════════════════════╣")
 	println("║  Layered Architecture:                                     ║")
 	println("║    • Entity     → entity/                                  ║")
-	println("║    • Repository → repository/                              ║")
+	println("║    • Repository → repository/ (PostgreSQL)                 ║")
 	println("║    • Service    → service/                                 ║")
 	println("║    • Handler    → handler/                                 ║")
 	println("╠════════════════════════════════════════════════════════════╣")
 	println("║  ⭐ Challenge: JOIN Product dengan Category!                ║")
 	println("╚════════════════════════════════════════════════════════════╝")
 	
-	err := http.ListenAndServe(":8080", nil)
+	err = http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		println("❌ Gagal running server:", err.Error())
 	}
