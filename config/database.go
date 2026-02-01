@@ -12,19 +12,14 @@ import (
 // DB is the global database connection
 var DB *sql.DB
 
-// ConnectDB initializes database connection
+// ConnectDB initializes database connection using URI
 func ConnectDB() *sql.DB {
-	host := getEnv("DB_HOST", "localhost")
-	port := getEnv("DB_PORT", "5432")
-	user := getEnv("DB_USER", "postgres")
-	password := getEnv("DB_PASSWORD", "postgres")
-	dbname := getEnv("DB_NAME", "kasir_api")
-	sslmode := getEnv("DB_SSLMODE", "disable")
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		log.Fatal("DATABASE_URL environment variable is required")
+	}
 
-	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		host, port, user, password, dbname, sslmode)
-
-	db, err := sql.Open("postgres", psqlInfo)
+	db, err := sql.Open("postgres", databaseURL)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
@@ -34,7 +29,7 @@ func ConnectDB() *sql.DB {
 		log.Fatal("Failed to ping database:", err)
 	}
 
-	fmt.Println("✅ Connected to PostgreSQL database")
+	fmt.Println("✅ Connected to PostgreSQL database (Neon)")
 	DB = db
 	return db
 }
@@ -117,12 +112,4 @@ func seedData() {
 	}
 
 	fmt.Println("🌱 Default data seeded")
-}
-
-func getEnv(key, defaultValue string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		return defaultValue
-	}
-	return value
 }

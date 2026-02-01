@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	_ "kasir-api/docs"
 	"kasir-api/handler"
 	"kasir-api/repository"
@@ -14,276 +15,76 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-// HTML untuk halaman root /
-const indexHTML = `<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kasir API - Week 2</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        .container {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            max-width: 800px;
-            width: 100%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 10px;
-            font-size: 2.5em;
-        }
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-        }
-        .badge {
-            display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.85em;
-            margin: 5px;
-        }
-        .badge.db {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-        }
-        .section {
-            margin: 25px 0;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-        .section h2 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-        }
-        .endpoint {
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            margin: 8px 0;
-            background: white;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-        }
-        .method {
-            font-weight: bold;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            margin-right: 15px;
-            min-width: 70px;
-            text-align: center;
-        }
-        .get { background: #61affe; color: white; }
-        .post { background: #49cc90; color: white; }
-        .put { background: #fca130; color: white; }
-        .delete { background: #f93e3e; color: white; }
-        .path {
-            font-family: monospace;
-            color: #333;
-        }
-        .links {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-top: 30px;
-            flex-wrap: wrap;
-        }
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 25px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .btn-secondary {
-            background: #f8f9fa;
-            color: #333;
-            border: 2px solid #ddd;
-        }
-        .architecture {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-        .layer {
-            text-align: center;
-            padding: 15px;
-            background: white;
-            border-radius: 8px;
-            border: 2px solid #e0e0e0;
-        }
-        .layer-name {
-            font-weight: bold;
-            color: #667eea;
-        }
-        .challenge {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-        }
-        .challenge h3 {
-            margin-bottom: 10px;
-        }
-        .db-info {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-        }
-        .db-info h3 {
-            margin-bottom: 10px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🚀 Kasir API</h1>
-        <p class="subtitle">
-            <span class="badge">Week 2</span>
-            <span class="badge">Layered Architecture</span>
-            <span class="badge">JOIN Challenge</span>
-            <span class="badge db">PostgreSQL</span>
-        </p>
+// APIInfo represents the API information for root endpoint
+type APIInfo struct {
+	Name        string       `json:"name"`
+	Version     string       `json:"version"`
+	Description string       `json:"description"`
+	Database    string       `json:"database"`
+	Endpoints   Endpoints    `json:"endpoints"`
+	Architecture Architecture `json:"architecture"`
+}
 
-        <div class="db-info">
-            <h3>🐘 Database: PostgreSQL</h3>
-            <p>Menggunakan PostgreSQL database dengan .env configuration</p>
-        </div>
+// Endpoints represents all available endpoints
+type Endpoints struct {
+	Root       string `json:"root"`
+	Health     string `json:"health"`
+	Swagger    string `json:"swagger"`
+	Categories string `json:"categories"`
+	Products   string `json:"products"`
+}
 
-        <div class="section">
-            <h2>📚 Layered Architecture</h2>
-            <div class="architecture">
-                <div class="layer">
-                    <div class="layer-name">Handler</div>
-                    <small>HTTP Layer</small>
-                </div>
-                <div class="layer">
-                    <div class="layer-name">Service</div>
-                    <small>Business Logic</small>
-                </div>
-                <div class="layer">
-                    <div class="layer-name">Repository</div>
-                    <small>Data Access (PostgreSQL)</small>
-                </div>
-                <div class="layer">
-                    <div class="layer-name">Entity</div>
-                    <small>Models</small>
-                </div>
-            </div>
-        </div>
+// Architecture represents the layered architecture
+type Architecture struct {
+	Layers []Layer `json:"layers"`
+}
 
-        <div class="section">
-            <h2>📂 Categories Endpoints</h2>
-            <div class="endpoint">
-                <span class="method get">GET</span>
-                <span class="path">/api/categories</span>
-            </div>
-            <div class="endpoint">
-                <span class="method get">GET</span>
-                <span class="path">/api/categories/{id}</span>
-            </div>
-            <div class="endpoint">
-                <span class="method post">POST</span>
-                <span class="path">/api/categories</span>
-            </div>
-            <div class="endpoint">
-                <span class="method put">PUT</span>
-                <span class="path">/api/categories/{id}</span>
-            </div>
-            <div class="endpoint">
-                <span class="method delete">DELETE</span>
-                <span class="path">/api/categories/{id}</span>
-            </div>
-        </div>
+// Layer represents a single layer
+type Layer struct {
+	Name        string `json:"name"`
+	Path        string `json:"path"`
+	Description string `json:"description"`
+}
 
-        <div class="section">
-            <h2>📦 Products Endpoints</h2>
-            <div class="endpoint">
-                <span class="method get">GET</span>
-                <span class="path">/api/produk</span>
-            </div>
-            <div class="endpoint">
-                <span class="method get">GET</span>
-                <span class="path">/api/produk/{id}</span>
-            </div>
-            <div class="endpoint">
-                <span class="method post">POST</span>
-                <span class="path">/api/produk</span>
-            </div>
-            <div class="endpoint">
-                <span class="method put">PUT</span>
-                <span class="path">/api/produk/{id}</span>
-            </div>
-            <div class="endpoint">
-                <span class="method delete">DELETE</span>
-                <span class="path">/api/produk/{id}</span>
-            </div>
-        </div>
-
-        <div class="challenge">
-            <h3>⭐ Week 2 Challenge: JOIN</h3>
-            <p>Get Product Detail dengan Category Name (JOIN)</p>
-            <code>GET /api/produk/1</code> akan return <code>product</code> + <code>category</code> object
-        </div>
-
-        <div class="links">
-            <a href="/swagger/" class="btn btn-primary">
-                📖 Swagger UI
-            </a>
-            <a href="/health" class="btn btn-secondary">
-                💓 Health Check
-            </a>
-        </div>
-    </div>
-</body>
-</html>`
+func getAPIInfo() APIInfo {
+	port := os.Getenv("SERVER_PORT")
+	if port == "" {
+		port = "8080"
+	}
+	
+	baseURL := "http://localhost:" + port
+	
+	return APIInfo{
+		Name:        "Kasir API",
+		Version:     "1.0.0",
+		Description: "API Kasir dengan Layered Architecture - Week 2 Challenge",
+		Database:    "PostgreSQL (Neon)",
+		Endpoints: Endpoints{
+			Root:       baseURL + "/",
+			Health:     baseURL + "/health",
+			Swagger:    baseURL + "/swagger/",
+			Categories: baseURL + "/api/categories",
+			Products:   baseURL + "/api/produk",
+		},
+		Architecture: Architecture{
+			Layers: []Layer{
+				{Name: "Handler", Path: "handler/", Description: "HTTP Layer - Request/Response handling"},
+				{Name: "Service", Path: "service/", Description: "Business Logic Layer"},
+				{Name: "Repository", Path: "repository/", Description: "Data Access Layer (PostgreSQL/Neon)"},
+				{Name: "Entity", Path: "entity/", Description: "Models/Entities"},
+			},
+		},
+	}
+}
 
 func main() {
 	// Load .env file
 	err := godotenv.Load()
 	if err != nil {
-		println("⚠️  Warning: .env file not found, using default values")
+		println("⚠️  Warning: .env file not found, using environment variables")
 	}
 
-	// Connect to PostgreSQL Database
+	// Connect to PostgreSQL Database (Neon)
 	db := config.ConnectDB()
 	defer db.Close()
 
@@ -292,7 +93,7 @@ func main() {
 
 	// ===== LAYERED ARCHITECTURE SETUP =====
 	
-	// Repository Layer (Data Access with PostgreSQL)
+	// Repository Layer (Data Access with PostgreSQL/Neon)
 	categoryRepo := repository.NewCategoryRepository(db)
 	productRepo := repository.NewProductRepository(db)
 	
@@ -306,15 +107,14 @@ func main() {
 	
 	// ===== ROUTES =====
 	
-	// Root endpoint dengan HTML rapi
+	// Root endpoint - Simple JSON
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
 			return
 		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(indexHTML))
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(getAPIInfo())
 	})
 	
 	// Swagger UI
@@ -366,7 +166,7 @@ func main() {
 	// Health check
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"status":"OK","message":"API Running with PostgreSQL"}`))
+		w.Write([]byte(`{"status":"OK","message":"API Running with PostgreSQL (Neon)"}`))
 	})
 	
 	port := os.Getenv("SERVER_PORT")
@@ -382,7 +182,7 @@ func main() {
 	println("║  📖 Swagger UI:      http://localhost:" + port + "/swagger/        ║")
 	println("║  💓 Health Check:    http://localhost:" + port + "/health          ║")
 	println("╠════════════════════════════════════════════════════════════╣")
-	println("║  🐘 Database: PostgreSQL                                   ║")
+	println("║  🐘 Database: PostgreSQL (Neon Serverless)                 ║")
 	println("╠════════════════════════════════════════════════════════════╣")
 	println("║  Layered Architecture:                                     ║")
 	println("║    • Entity     → entity/                                  ║")
