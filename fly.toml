@@ -1,4 +1,4 @@
-# fly.toml app configuration file generated for code-with-umam-jago-golang on 2026-01-23T10:18:48Z
+# fly.toml app configuration file generated for code-with-umam-jago-golang on 2026-02-10T20:01:06Z
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
@@ -7,11 +7,6 @@ app = 'code-with-umam-jago-golang'
 primary_region = 'sin'
 
 [build]
-  [build.args]
-    GO_VERSION = '1.25.1'
-
-[env]
-  PORT = '8080'
 
 [http_service]
   internal_port = 8080
