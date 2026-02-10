@@ -8,7 +8,7 @@ import (
 
 // ProductRepositoryInterface - interface untuk product repository
 type ProductRepositoryInterface interface {
-	GetAll() ([]entity.Product, error)
+	GetAll(name string) ([]entity.Product, error)
 	GetByID(id int) (entity.Product, error)
 	Create(product entity.Product) (entity.Product, error)
 	Update(id int, product entity.Product) (entity.Product, error)
@@ -26,8 +26,17 @@ func NewProductRepository(db *sql.DB) *ProductRepository {
 }
 
 // GetAll - ambil semua produk
-func (r *ProductRepository) GetAll() ([]entity.Product, error) {
-	rows, err := r.db.Query("SELECT id, nama, harga, category_id FROM products")
+// Supports filtering by name using ILIKE for case-insensitive search
+func (r *ProductRepository) GetAll(name string) ([]entity.Product, error) {
+	query := "SELECT id, nama, harga, category_id FROM products"
+	var args []interface{}
+
+	if name != "" {
+		query += " WHERE nama ILIKE $1"
+		args = append(args, "%"+name+"%")
+	}
+
+	rows, err := r.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}

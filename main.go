@@ -27,11 +27,14 @@ type APIInfo struct {
 
 // Endpoints represents all available endpoints
 type Endpoints struct {
-	Root       string `json:"root"`
-	Health     string `json:"health"`
-	Swagger    string `json:"swagger"`
-	Categories string `json:"categories"`
-	Products   string `json:"products"`
+	Root        string `json:"root"`
+	Health      string `json:"health"`
+	Swagger     string `json:"swagger"`
+	Categories  string `json:"categories"`
+	Products    string `json:"products"`
+	Checkout    string `json:"checkout"`
+	ReportToday string `json:"report_today"`
+	ReportRange string `json:"report_range"`
 }
 
 // Architecture represents the layered architecture
@@ -60,11 +63,14 @@ func getAPIInfo() APIInfo {
 		Description: "API Kasir dengan Layered Architecture - Week 2 Challenge",
 		Database:    "PostgreSQL (Neon)",
 		Endpoints: Endpoints{
-			Root:       baseURL + "/",
-			Health:     baseURL + "/health",
-			Swagger:    baseURL + "/swagger/",
-			Categories: baseURL + "/api/categories",
-			Products:   baseURL + "/api/produk",
+			Root:        baseURL + "/",
+			Health:      baseURL + "/health",
+			Swagger:     baseURL + "/swagger/",
+			Categories:  baseURL + "/api/categories",
+			Products:    baseURL + "/api/produk",
+			Checkout:    baseURL + "/api/checkout",
+			ReportToday: baseURL + "/api/report/hari-ini",
+			ReportRange: baseURL + "/api/report?start_date=2026-01-01&end_date=2026-02-01",
 		},
 		Architecture: Architecture{
 			Layers: []Layer{
@@ -96,14 +102,17 @@ func main() {
 	// Repository Layer (Data Access with PostgreSQL/Neon)
 	categoryRepo := repository.NewCategoryRepository(db)
 	productRepo := repository.NewProductRepository(db)
+	transactionRepo := repository.NewTransactionRepository(db)
 	
 	// Service Layer (Business Logic)
 	categoryService := service.NewCategoryService(categoryRepo)
 	productService := service.NewProductService(productRepo, categoryRepo) // Inject categoryRepo untuk JOIN
+	transactionService := service.NewTransactionService(transactionRepo)
 	
 	// Handler Layer (HTTP Handler/Controller)
 	categoryHandler := handler.NewCategoryHandler(categoryService)
 	productHandler := handler.NewProductHandler(productService)
+	transactionHandler := handler.NewTransactionHandler(transactionService)
 	
 	// ===== ROUTES =====
 	
@@ -163,6 +172,11 @@ func main() {
 		}
 	})
 	
+	// Transaction Routes
+	http.HandleFunc("/api/checkout", transactionHandler.HandleCheckout) // POST
+	http.HandleFunc("/api/report/hari-ini", transactionHandler.HandleSalesReportToday) // GET
+	http.HandleFunc("/api/report", transactionHandler.HandleSalesReport) // GET with query params
+
 	// Health check
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -190,6 +204,11 @@ func main() {
 	println("║    • Service    → service/                                 ║")
 	println("║    • Handler    → handler/                                 ║")
 	println("╠════════════════════════════════════════════════════════════╣")
+	println("║  ✨ Session 3: Transaction API & Sales Report              ║")
+	println("║     • POST /api/checkout - Create transaction              ║")
+	println("║     • GET  /api/report/hari-ini - Today's sales report     ║")
+	println("║     • GET  /api/report?start_date=&end_date= - Date range  ║")
+	println("║                                                            ║")
 	println("║  ⭐ Challenge: JOIN Product dengan Category!                ║")
 	println("╚════════════════════════════════════════════════════════════╝")
 	

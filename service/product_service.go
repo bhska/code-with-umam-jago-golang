@@ -7,7 +7,7 @@ import (
 
 // ProductServiceInterface - interface untuk product service
 type ProductServiceInterface interface {
-	GetAllProducts() ([]entity.Product, error)
+	GetAllProducts(name string) ([]entity.Product, error)
 	GetProductByID(id int) (entity.Product, error)
 	CreateProduct(product entity.Product) (entity.Product, error)
 	UpdateProduct(id int, product entity.Product) (entity.Product, error)
@@ -29,8 +29,9 @@ func NewProductService(productRepo repository.ProductRepositoryInterface, catego
 }
 
 // GetAllProducts - ambil semua produk
-func (s *ProductService) GetAllProducts() ([]entity.Product, error) {
-	return s.productRepo.GetAll()
+// Supports filtering by name (case-insensitive search)
+func (s *ProductService) GetAllProducts(name string) ([]entity.Product, error) {
+	return s.productRepo.GetAll(name)
 }
 
 // GetProductByID - ambil produk berdasarkan ID dengan join category

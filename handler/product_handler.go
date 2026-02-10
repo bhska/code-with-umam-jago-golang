@@ -20,8 +20,12 @@ func NewProductHandler(service service.ProductServiceInterface) *ProductHandler 
 }
 
 // GetAllProducts - handler untuk GET /api/produk
+// Supports search by name using query parameter: ?name=indom
 func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) {
-	products, err := h.service.GetAllProducts()
+	// Get search query parameter
+	name := r.URL.Query().Get("name")
+
+	products, err := h.service.GetAllProducts(name)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
